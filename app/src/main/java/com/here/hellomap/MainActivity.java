@@ -48,6 +48,7 @@ import com.here.sdk.core.Color;
 import com.here.sdk.core.GeoBox;
 import com.here.sdk.core.GeoCoordinates;
 import com.here.sdk.core.GeoOrientationUpdate;
+import com.here.sdk.core.GeoPolygon;
 import com.here.sdk.core.GeoPolyline;
 import com.here.sdk.core.Metadata;
 import com.here.sdk.core.Point2D;
@@ -63,6 +64,7 @@ import com.here.sdk.mapview.MapError;
 import com.here.sdk.mapview.MapMeasure;
 import com.here.sdk.mapview.MapMeasureDependentRenderSize;
 import com.here.sdk.mapview.MapPickResult;
+import com.here.sdk.mapview.MapPolygon;
 import com.here.sdk.mapview.MapPolyline;
 import com.here.sdk.mapview.MapScene;
 import com.here.sdk.mapview.MapScheme;
@@ -71,6 +73,7 @@ import com.here.sdk.mapview.MapViewBase;
 import com.here.sdk.mapview.PickMapItemsResult;
 import com.here.sdk.mapview.RenderSize;
 import com.here.sdk.routing.CalculateRouteCallback;
+import com.here.sdk.routing.CarOptions;
 import com.here.sdk.routing.OfflineRoutingEngine;
 import com.here.sdk.routing.OptimizationMode;
 import com.here.sdk.routing.PedestrianOptions;
@@ -169,8 +172,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeHERESDK() {
         // Set your credentials for the HERE SDK.
-        String accessKeyID = "";
-        String accessKeySecret = "";
+        String accessKeyID = BuildConfig.HERE_ACCESS_KEY_ID;
+        String accessKeySecret = BuildConfig.HERE_ACCESS_KEY_SECRET;
+
         AuthenticationMode authenticationMode = AuthenticationMode.withKeySecret(accessKeyID, accessKeySecret);
         SDKOptions options = new SDKOptions(authenticationMode);
 
@@ -188,7 +192,11 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void permissionsGranted() {
-                loadMapScene();
+                try {
+                    loadMapScene();
+                } catch (InstantiationErrorException e) {
+                    throw new RuntimeException(e);
+                }
             }
 
             @Override
@@ -265,7 +273,7 @@ public class MainActivity extends AppCompatActivity {
             pedestrianOptions.routeOptions.alternatives = 0;
             pedestrianOptions.routeOptions.optimizationMode = OptimizationMode.SHORTEST;
 
-            offlineRoutingEngine.calculateRoute(parkingSegmentPointList, pedestrianOptions, new CalculateRouteCallback() {
+            offlineRoutingEngine.calculateRoute(parkingSegmentPointList, new CarOptions(), new CalculateRouteCallback() {
                 @Override
                 public void onRouteCalculated(@Nullable RoutingError routingError, @Nullable List<Route> list) {
                     if (routingError == null && list != null) {
@@ -297,13 +305,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void loadMapScene() {
+    private void loadMapScene() throws InstantiationErrorException {
         // The camera can be configured before or after a scene is loaded.
         double distanceInMeters = 1000 * 10;
         MapMeasure mapMeasureZoom = new MapMeasure(MapMeasure.Kind.DISTANCE_IN_METERS, distanceInMeters);
-        GeoBox mapViewGeoBox = new GeoBox(new GeoCoordinates(52.50924410890286, 13.382594687430482), new GeoCoordinates(52.51700240896973, 13.394372921958052));
+        GeoBox mapViewGeoBox = new GeoBox(new GeoCoordinates(52.507244,13.382594), new GeoCoordinates(52.516227,13.397184));
         GeoOrientationUpdate geoOrientationUpdate = new GeoOrientationUpdate(0d, 0d);
+
+        MapPolygon mapPolygon = new MapPolygon(new GeoPolygon(mapViewGeoBox), Color.valueOf(0f, 0f, 0f,0f), Color.valueOf(0.3f, 0.3f, 0f), 10d);
+        mapView.getMapScene().addMapPolygon(mapPolygon);
+        mapViewGeoBox = mapViewGeoBox.expandedBy(20, 20, 20, 20);
         mapView.getCamera().lookAt(mapViewGeoBox, geoOrientationUpdate);
+
         // Load a scene from the HERE SDK to render the map with a map scheme.
         mapView.getMapScene().loadScene(MapScheme.NORMAL_DAY, new MapScene.LoadSceneCallback() {
             @Override
