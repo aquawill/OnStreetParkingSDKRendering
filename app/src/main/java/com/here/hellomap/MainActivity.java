@@ -243,8 +243,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processNextRouting() {
-        ParkingSegment segment = routingQueue.poll();  // 取出下一個 Routing 任務
-        if (segment == null) return;  // 若沒有任務，則停止
+        ParkingSegment segment = routingQueue.poll();
+        if (segment == null) return;
 
         int probability = (segment.getProbability() != null) ? segment.getProbability().get(0).probability : -1;
         if (segment.getTpegOpenLR() != null) {
